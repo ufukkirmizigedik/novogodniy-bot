@@ -8,7 +8,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import time
 import aiogram.utils.markdown as md
 from aiogram.dispatcher import filters
-from buttons import kb_client
+from buttons import kb_client,gorod_tus
 
 
 storage = MemoryStorage()
@@ -24,8 +24,8 @@ base = sqlite3.connect('bks.db')
 cur = base.cursor()
 if base:
     print('Data base connected')
-base.execute('CREATE TABLE IF NOT EXISTS workers(user_id INTEGER, fio TEXT,adres TEXT)')
-base.execute('CREATE TABLE IF NOT EXISTS Chosen(user_id INTEGER,fio TEXT,adres TEXT,chooser_id INTEGER)')
+base.execute('CREATE TABLE IF NOT EXISTS workers(user_id INTEGER, fio TEXT,gorod TEXT)')
+base.execute('CREATE TABLE IF NOT EXISTS Chosen(user_id INTEGER,fio TEXT,gorod TEXT,chooser_id INTEGER)')
 base.execute('CREATE TABLE IF NOT EXISTS Result(Sender TEXT,Receiver TEXT)')
 base.commit()
 
@@ -64,7 +64,7 @@ async def plan_sale(message: types.Message,state:FSMContext):
         pla['plan'] = message.text
         time.sleep(1)
         await Plan.next()
-        await message.answer('Напишите ваш почтовые адрес?')
+        await message.answer('Напишите ваш город?',reply_markup=gorod_tus)
 
 @dp.message_handler(state=Plan.plan1)
 async def plan_ems(message: types.Message,state:FSMContext):
@@ -73,19 +73,19 @@ async def plan_ems(message: types.Message,state:FSMContext):
         time.sleep(1)
         sqlite3.connect('bks.db')
         fio = pla['plan']
-        adres = pla['plan1']
+        gorod = pla['plan1']
         id_user = message.from_user.id
         cur = base.cursor()
-        cur.execute("INSERT INTO workers VALUES (?,?,?)",(id_user,fio,adres,))
+        cur.execute("INSERT INTO workers VALUES (?,?,?)",(id_user,fio,gorod,))
         base.commit()
         await bot.send_message(
             message.chat.id,
             md.text(
                 md.text('ID сотрудника : ', md.bold(id_user)),
                 md.text('ФИО сотрудника:', pla['plan']),
-                md.text('Адрес сотрудника:',pla['plan1']),
+                md.text('Город сотрудника:',pla['plan1']),
                 sep='\n'))
-        await message.answer('Спасибо за регистрацию! Ваше ФИО и адрес зарегистрированы.')
+        await message.answer('Спасибо за регистрацию! Ваше ФИО и адрес зарегистрированы.',reply_markup=kb_client)
         await state.finish()
 
 
@@ -104,11 +104,11 @@ async def choose(message: types.Message):
     if user in all_id:
         await message.answer("Вы уже выбрали")
     else:
-        kisi = cur.execute("SELECT user_id,fio, adres FROM workers WHERE user_id != ? ORDER BY RANDOM() LIMIT 1", (user,)).fetchone()
-        user_id,fio,adres = kisi
+        kisi = cur.execute("SELECT user_id,fio,gorod FROM workers WHERE gorod = (SELECT gorod FROM workers WHERE user_id = ?) AND user_id != ? ORDER BY RANDOM() LIMIT 1", (user,user,)).fetchone()
+        user_id,fio,gorod = kisi
 
-        await message.answer(f"ID-Сотрудника:{user_id}\nФИО-Сотрудника:{fio}\nАдрес Сотрудника:{adres}")
-        secilen = cur.execute("INSERT INTO Chosen VALUES (?,?,?,?)",(user_id,fio,adres,user,))
+        await message.answer(f"ID-Сотрудника:{user_id}\nФИО-Сотрудника:{fio}\nГород Сотрудника:{gorod}")
+        secilen = cur.execute("INSERT INTO Chosen VALUES (?,?,?,?)",(user_id,fio,gorod,user,))
         gonderen = cur.execute("SELECT fio FROM workers WHERE user_id = ?",(user,)).fetchone()
         print(gonderen)
         print(kisi[1])
