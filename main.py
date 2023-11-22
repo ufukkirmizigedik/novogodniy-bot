@@ -13,7 +13,7 @@ from buttons import kb_client,gorod_tus
 
 storage = MemoryStorage()
 
-API_TOKEN = '6312713444:AAEiL6kLCUIcSpL1L8fSM1ocJMjehZSZtic'
+API_TOKEN = 'TOKEN HERE'
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
